@@ -1,18 +1,24 @@
 import pytest
-from pyspark.sql import SparkSession
+import pandas as pd
+from pathlib import Path
+
 
 @pytest.fixture(scope="session")
-def spark_session():
-    """
-    Fixture to construct a local SparkSession shared across all unit test cases.
-    """
-    spark = (
-        SparkSession.builder
-        .master("local[*]")
-        .appName("pyspark-unit-tests")
-        .config("spark.sql.shuffle.partitions", "1")
-        .config("spark.default.parallelism", "1")
-        .getOrCreate()
-    )
-    yield spark
-    spark.stop()
+def gold_path():
+    """Caminho para a camada Gold do projeto."""
+    base = Path(__file__).resolve().parent.parent
+    return base / "data" / "gold"
+
+
+@pytest.fixture(scope="session")
+def silver_path():
+    """Caminho para a camada Silver do projeto."""
+    base = Path(__file__).resolve().parent.parent
+    return base / "data" / "silver" / "microdados_escola"
+
+
+@pytest.fixture(scope="session")
+def bronze_path():
+    """Caminho para a camada Bronze do projeto."""
+    base = Path(__file__).resolve().parent.parent
+    return base / "data" / "bronze"

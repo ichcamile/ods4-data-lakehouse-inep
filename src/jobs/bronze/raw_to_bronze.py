@@ -1,29 +1,45 @@
+from pathlib import Path
 from src.config import settings
-from src.utils.spark import get_spark_session
 from src.utils.logger import get_logger
 
 logger = get_logger("raw_to_bronze")
 
+
 def run():
     """
-    Bronze Ingestion Job: Reads raw data and writes to Delta/Parquet Bronze tables.
+    Job de validação Raw → Bronze.
+
+    Verifica a integridade dos arquivos CSV extraídos na camada Bronze,
+    reportando quais anos estão disponíveis e o número de arquivos por ano.
+
+    Nota: A extração em si é feita pelo job `zip_to_file.py`.
+    Este job serve para validar e logar o estado da camada Bronze.
     """
-    logger.info("Starting Bronze Ingestion (Raw -> Bronze)...")
-    
-    spark = get_spark_session()
-    
-    # Example raw ingestion setup (change file type / options as needed)
-    raw_path = settings.RAW_DATA_PATH
-    bronze_path = settings.BRONZE_DATA_PATH
-    
-    logger.info(f"Reading raw data from {raw_path}")
-    logger.info(f"Writing bronze data to {bronze_path}")
-    
-    # TODO: Add specific ingestion logic for INEP microdata (e.g. ENEM, Censo)
-    # df = spark.read.format("csv").option("header", "true").option("delimiter", ";").load(f"{raw_path}/example_raw.csv")
-    # df.write.format("delta").mode("overwrite").save(f"{bronze_path}/example_table")
-    
-    logger.info("Bronze Ingestion completed successfully.")
+    bronze_path = Path(settings.BRONZE_DATA_PATH)
+
+    logger.info("=" * 60)
+    logger.info("Verificação da camada Bronze")
+    logger.info(f"  Bronze: {bronze_path}")
+    logger.info("=" * 60)
+
+    ano_dirs = sorted(bronze_path.glob("ano=*"))
+
+    if not ano_dirs:
+        logger.warning("Nenhum dado encontrado na camada Bronze.")
+        logger.warning("Execute primeiro: python -m src.jobs.bronze.zip_to_file")
+        return
+
+    total_arquivos = 0
+    for ano_dir in ano_dirs:
+        csvs = list(ano_dir.glob("*.csv"))
+        total_arquivos += len(csvs)
+        status = "✓" if csvs else "✗ (vazio)"
+        logger.info(f"  {status} {ano_dir.name}: {len(csvs)} arquivo(s) CSV")
+
+    logger.info("=" * 60)
+    logger.info(f"Total: {len(ano_dirs)} anos | {total_arquivos} arquivo(s) CSV")
+    logger.info("=" * 60)
+
 
 if __name__ == "__main__":
     run()

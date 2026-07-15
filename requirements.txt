@@ -2,3 +2,5 @@ pyspark>=3.4.0
 delta-spark>=3.0.0
 python-dotenv>=1.0.0
 pytest>=7.0.0
+pandas
+pyarrow>=14.0.0
