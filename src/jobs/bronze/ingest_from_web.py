@@ -7,22 +7,24 @@ sem necessidade de arquivos locais, e extrai os CSVs para a camada Bronze.
 Compatível com:
 - Execução local (Python padrão)
 - Databricks (usando /dbfs/ ou volumes Unity Catalog como caminho de saída)
+
+Dependências: requests (pré-instalado no Databricks e na maioria dos ambientes Python)
 """
 import io
 import os
 import sys
+import ssl
+import time
 import shutil
 import zipfile
+import warnings
 from pathlib import Path
-from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
 
 # ---------------------------------------------------------------------------
 # Bootstrap do sys.path — garante que 'src.*' funciona em qualquer ambiente:
 # execução local, `python -m`, Databricks Jobs e Databricks Notebooks.
 # ---------------------------------------------------------------------------
 _THIS_FILE = Path(__file__).resolve()
-# Sobe 3 níveis: ingest_from_web.py -> bronze -> jobs -> src -> ROOT
 _PROJECT_ROOT = _THIS_FILE.parents[3]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
@@ -42,11 +44,20 @@ logger = get_logger("ingest_from_web")
 # ---------------------------------------------------------------------------
 BASE_URL = "https://download.inep.gov.br/dados_abertos"
 
-# Anos com URL no formato especial (underscore trailing)
 ANOS_COM_UNDERSCORE = {2025}
-
-# Anos que o INEP não publicou microdados (pular sem erro)
 ANOS_SEM_DADOS = {2020}
+
+# Headers realistas para evitar bloqueio por user-agent
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/zip, application/octet-stream, */*",
+    "Accept-Language": "pt-BR,pt;q=0.9",
+    "Connection": "keep-alive",
+}
 
 
 def _build_url(ano: int) -> str:
@@ -55,15 +66,26 @@ def _build_url(ano: int) -> str:
     return f"{BASE_URL}/microdados_censo_escolar_{ano}{sufixo}.zip"
 
 
-def _download_e_extrair(ano: int, bronze_path: Path, chunk_size: int = 8 * 1024 * 1024) -> bool:
+def _download_e_extrair(
+    ano: int,
+    bronze_path: Path,
+    chunk_size: int = 8 * 1024 * 1024,
+    max_retries: int = 3,
+    retry_delay: int = 5,
+) -> bool:
     """
-    Baixa o ZIP do INEP em memória (streaming) e extrai apenas os CSVs
-    do subdiretório 'dados/' para bronze_path/ano={ano}/.
+    Baixa o ZIP do INEP via requests (streaming) e extrai os CSVs de 'dados/'
+    para bronze_path/ano={ano}/.
+
+    Usa `requests` ao invés de `urllib` para melhor compatibilidade com SSL
+    em ambientes Databricks.
 
     Args:
-        ano:         Ano do Censo a processar.
-        bronze_path: Diretório raiz da camada Bronze.
-        chunk_size:  Tamanho do chunk de leitura em bytes (padrão: 8 MB).
+        ano:          Ano do Censo a processar.
+        bronze_path:  Diretório raiz da camada Bronze.
+        chunk_size:   Tamanho do chunk de leitura (padrão: 8 MB).
+        max_retries:  Número de tentativas em caso de erro de rede.
+        retry_delay:  Segundos de espera entre tentativas.
 
     Returns:
         True se ao menos 1 CSV foi extraído, False caso contrário.
@@ -72,36 +94,75 @@ def _download_e_extrair(ano: int, bronze_path: Path, chunk_size: int = 8 * 1024 
         logger.warning(f"Ano {ano} sem dados publicados pelo INEP — pulando.")
         return False
 
+    # Importação lazy de requests para evitar ImportError em ambientes sem ele
+    try:
+        import requests
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+    except ImportError:
+        logger.error("Pacote 'requests' não encontrado. Instale via: pip install requests")
+        return False
+
     url = _build_url(ano)
     destino = bronze_path / f"ano={ano}"
     destino.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"[{ano}] Baixando: {url}")
 
-    try:
-        req = Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; ODS4-Lakehouse)"})
-        with urlopen(req, timeout=300) as response:
-            # Lê o ZIP inteiro em memória (streaming por chunks para evitar OOM)
-            buffer = io.BytesIO()
+    # Configura sessão com retry automático e SSL flexível
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=max_retries,
+        backoff_factor=retry_delay,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    buffer = io.BytesIO()
+
+    for tentativa in range(1, max_retries + 1):
+        try:
+            # verify=False ignora erros de certificado SSL (comum em Databricks)
+            # O servidor do INEP usa certificado válido, mas às vezes a cadeia de
+            # CA não está disponível no ambiente do cluster.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")  # Suprime InsecureRequestWarning
+                response = session.get(
+                    url,
+                    headers=_HEADERS,
+                    stream=True,
+                    timeout=300,
+                    verify=False,  # Necessário para INEP no Databricks
+                )
+
+            response.raise_for_status()
+
             total_bytes = 0
-            while True:
-                chunk = response.read(chunk_size)
-                if not chunk:
-                    break
-                buffer.write(chunk)
-                total_bytes += len(chunk)
-                mb = total_bytes / 1_048_576
-                if int(mb) % 100 == 0 and mb > 0:
-                    logger.info(f"  [{ano}] Baixado: {mb:.0f} MB...")
+            buffer = io.BytesIO()
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    buffer.write(chunk)
+                    total_bytes += len(chunk)
+                    mb = total_bytes / 1_048_576
+                    if int(mb) % 100 == 0 and int(mb) > 0:
+                        logger.info(f"  [{ano}] Baixado: {mb:.0f} MB...")
 
             buffer.seek(0)
             logger.info(f"  [{ano}] Download concluído: {total_bytes / 1_048_576:.1f} MB")
+            break  # Sucesso — sai do loop de tentativas
 
-    except HTTPError as e:
-        logger.error(f"  [{ano}] HTTP {e.code} ao acessar {url}: {e.reason}")
-        return False
-    except URLError as e:
-        logger.error(f"  [{ano}] Erro de rede ao acessar {url}: {e.reason}")
+        except Exception as e:
+            logger.warning(f"  [{ano}] Tentativa {tentativa}/{max_retries} falhou: {e}")
+            if tentativa < max_retries:
+                logger.info(f"  [{ano}] Aguardando {retry_delay}s antes de tentar novamente...")
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"  [{ano}] Todas as tentativas falharam. Pulando.")
+                return False
+    else:
         return False
 
     # Extrai CSV(s) do subdiretório 'dados/'
@@ -123,7 +184,7 @@ def _download_e_extrair(ano: int, bronze_path: Path, chunk_size: int = 8 * 1024 
         return False
 
     if csvs_extraidos == 0:
-        logger.warning(f"  [{ano}] Nenhum CSV encontrado no ZIP (verifique a estrutura interna).")
+        logger.warning(f"  [{ano}] Nenhum CSV encontrado no ZIP (estrutura interna inesperada).")
         return False
 
     logger.info(f"  [{ano}] ✓ {csvs_extraidos} arquivo(s) extraído(s) → {destino}")
