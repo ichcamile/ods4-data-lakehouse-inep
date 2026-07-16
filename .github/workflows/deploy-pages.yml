@@ -1,0 +1,41 @@
+name: Deploy Dashboard to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  # Permite rodar o workflow manualmente pela aba "Actions"
+  workflow_dispatch:
+
+# Permissões necessárias para fazer o deploy no Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Permite apenas um deploy simultâneo, pulando os que estão na fila.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+      
+      - name: Configurar o GitHub Pages
+        uses: actions/configure-pages@v5
+        
+      - name: Fazer upload dos arquivos do site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Faz o upload de todo o repositório (incluindo o index.html raiz e a pasta dashboard)
+          path: '.'
+          
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
