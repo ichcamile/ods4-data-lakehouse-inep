@@ -82,6 +82,9 @@ def _build_dim_escola(df: pd.DataFrame) -> pd.DataFrame:
         "tp_dependencia", "tp_localizacao",
         "tp_situacao_funcionamento", "tp_categoria_escola_privada",
         "in_regular", "in_eja", "in_especial", "in_profissional",
+        "in_agua_potavel", "in_energia_rede_publica", "in_internet",
+        "in_internet_alunos", "in_biblioteca", "in_laboratorio_info",
+        "in_quadra_esportes", "in_alimentacao",
         "ano_censo",
     ]
 

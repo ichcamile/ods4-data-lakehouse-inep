@@ -6,9 +6,8 @@ sem necessidade de arquivos locais, e extrai os CSVs para a camada Bronze.
 
 Compatível com:
 - Execução local (Python padrão)
-- Databricks (usando /dbfs/ ou volumes Unity Catalog como caminho de saída)
 
-Dependências: requests (pré-instalado no Databricks e na maioria dos ambientes Python)
+Dependências: requests
 """
 import io
 import os
@@ -23,7 +22,7 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Bootstrap do sys.path — garante que 'src.*' funciona em qualquer ambiente:
-# execução local, `python -m`, Databricks Jobs e Databricks Notebooks.
+# execução local.
 # ---------------------------------------------------------------------------
 _THIS_FILE = Path(__file__).resolve()
 _PROJECT_ROOT = _THIS_FILE.parents[3]
@@ -78,8 +77,7 @@ def _download_e_extrair(
     Baixa o ZIP do INEP via requests (streaming) e extrai os CSVs de 'dados/'
     para bronze_path/ano={ano}/.
 
-    Usa `requests` ao invés de `urllib` para melhor compatibilidade com SSL
-    em ambientes Databricks.
+    Usa `requests` ao invés de `urllib`.
 
     Args:
         ano:          Ano do Censo a processar.
@@ -126,9 +124,8 @@ def _download_e_extrair(
 
     for tentativa in range(1, max_retries + 1):
         try:
-            # verify=False ignora erros de certificado SSL (comum em Databricks)
             # O servidor do INEP usa certificado válido, mas às vezes a cadeia de
-            # CA não está disponível no ambiente do cluster.
+            # CA não está disponível, por isso usamos verify=False.
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")  # Suprime InsecureRequestWarning
                 response = session.get(
@@ -136,7 +133,7 @@ def _download_e_extrair(
                     headers=_HEADERS,
                     stream=True,
                     timeout=300,
-                    verify=False,  # Necessário para INEP no Databricks
+                    verify=False,
                 )
 
             response.raise_for_status()
@@ -211,17 +208,7 @@ def run(ano_inicio: int = 2004, ano_fim: int = 2024, forcar_redownload: bool = F
     """
     bronze_path = Path(settings.BRONZE_DATA_PATH)
     
-    if str(bronze_path).startswith("/Workspace/"):
-        raise OSError(
-            "ERRO CRÍTICO: Tentativa de escrever dados no diretório /Workspace/ do Databricks.\n"
-            "O Workspace tem um limite estrito de 10 MB por arquivo e os CSVs do INEP possuem centenas de MB, "
-            "o que causará o erro '[Errno 27] File too large'.\n\n"
-            "Solução:\n"
-            "1. Atualize seu repositório no Databricks (Git Pull) para receber a última correção.\n"
-            "2. Ou configure manualmente as variáveis no cluster (Compute -> Edit -> Advanced Options -> Spark -> Environment Variables):\n"
-            "   BRONZE_DATA_PATH=/dbfs/FileStore/lakehouse_inep/bronze"
-        )
-        
+    bronze_path = Path(settings.BRONZE_DATA_PATH)
     bronze_path.mkdir(parents=True, exist_ok=True)
 
     logger.info("=" * 60)

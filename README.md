@@ -77,8 +77,7 @@ ods4-data-lakehouse-inep/
 │   └── test_gold.py               # Validações da camada Gold
 │
 ├── docs/
-│   ├── dicionario_de_dados.md     # Descrição das colunas das tabelas Gold
-│   └── guia_databricks.md         # Como rodar o pipeline no Databricks
+│   └── dicionario_de_dados.md     # Descrição das colunas das tabelas Gold
 │
 ├── .gitignore
 ├── requirements.txt
@@ -139,20 +138,6 @@ python -m src.jobs.silver.bronze_to_silver
 # Etapa 3 — Gerar tabelas Gold (~15min)
 python -m src.jobs.gold.silver_to_gold
 ```
-
----
-
-## ☁️ Executando no Databricks
-
-Para rodar o pipeline no Databricks (Community, AWS, Azure ou GCP) sem precisar de arquivos locais, consulte o guia completo:
-
-📄 **[docs/guia_databricks.md](docs/guia_databricks.md)**
-
-Resumo rápido:
-1. Conecte o repositório via **Git Repos**
-2. Configure variáveis de ambiente com os caminhos DBFS/Volume
-3. Crie 3 Jobs em **Workflows** (um por etapa)
-4. Execute o pipeline — os dados são baixados diretamente do INEP
 
 ### 4. Executar os testes
 
