@@ -205,6 +205,18 @@ def run(ano_inicio: int = 2004, ano_fim: int = 2024, forcar_redownload: bool = F
         forcar_redownload:  Se True, baixa mesmo que o CSV já exista. Padrão: False.
     """
     bronze_path = Path(settings.BRONZE_DATA_PATH)
+    
+    if str(bronze_path).startswith("/Workspace/"):
+        raise OSError(
+            "ERRO CRÍTICO: Tentativa de escrever dados no diretório /Workspace/ do Databricks.\n"
+            "O Workspace tem um limite estrito de 10 MB por arquivo e os CSVs do INEP possuem centenas de MB, "
+            "o que causará o erro '[Errno 27] File too large'.\n\n"
+            "Solução:\n"
+            "1. Atualize seu repositório no Databricks (Git Pull) para receber a última correção.\n"
+            "2. Ou configure manualmente as variáveis no cluster (Compute -> Edit -> Advanced Options -> Spark -> Environment Variables):\n"
+            "   BRONZE_DATA_PATH=/dbfs/FileStore/lakehouse_inep/bronze"
+        )
+        
     bronze_path.mkdir(parents=True, exist_ok=True)
 
     logger.info("=" * 60)
