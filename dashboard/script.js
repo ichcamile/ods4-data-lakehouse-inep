@@ -39,7 +39,7 @@ Chart.defaults.set('plugins.datalabels', {
 
 async function loadKPIs() {
     try {
-        const res = await fetch('./api_data/kpis.json');
+        const res = await fetch('./dashboard/api_data/kpis.json');
         const data = await res.json();
         document.getElementById('kpi-escolas').textContent = formatNumber(data.total_escolas);
         document.getElementById('kpi-matriculas').textContent = formatNumber(data.total_matriculas);
@@ -51,7 +51,7 @@ async function loadKPIs() {
 
 async function loadTrendChart() {
     try {
-        const res = await fetch('./api_data/evasion_trend.json');
+        const res = await fetch('./dashboard/api_data/evasion_trend.json');
         const data = await res.json();
         const ctx = document.getElementById('trendChart').getContext('2d');
         new Chart(ctx, {
@@ -78,7 +78,7 @@ async function loadTrendChart() {
 
 async function loadStageChart() {
     try {
-        const res = await fetch('./api_data/stage_dropout.json');
+        const res = await fetch('./dashboard/api_data/stage_dropout.json');
         const data = await res.json();
         const ctx = document.getElementById('stageChart').getContext('2d');
         new Chart(ctx, {
@@ -116,7 +116,7 @@ async function loadStageChart() {
 
 async function loadUrbanRuralChart() {
     try {
-        const res = await fetch('./api_data/urban_rural.json');
+        const res = await fetch('./dashboard/api_data/urban_rural.json');
         const data = await res.json();
         const ctx = document.getElementById('urbanRuralChart').getContext('2d');
         new Chart(ctx, {
@@ -143,7 +143,7 @@ async function loadUrbanRuralChart() {
 // O VERDADEIRO IMPACTO DA INFRAESTRUTURA (VARIAÇÃO %)
 async function loadInfraEvasionChart() {
     try {
-        const res = await fetch('./api_data/infra_evasion_rate.json');
+        const res = await fetch('./dashboard/api_data/infra_evasion_rate.json');
         const data = await res.json();
         const ctx = document.getElementById('infraEvasionChart').getContext('2d');
         
@@ -176,7 +176,7 @@ async function loadInfraEvasionChart() {
 // O ABANDONO MASCULINO
 async function loadGenderEvasionChart() {
     try {
-        const res = await fetch('./api_data/evasion_gender.json');
+        const res = await fetch('./dashboard/api_data/evasion_gender.json');
         const data = await res.json();
         const ctx = document.getElementById('genderEvasionChart').getContext('2d');
         
@@ -201,7 +201,7 @@ async function loadGenderEvasionChart() {
 // DEMANDA SOCIAL EJA
 async function loadEjaDemand() {
     try {
-        const res = await fetch('./api_data/social_demand_eja.json');
+        const res = await fetch('./dashboard/api_data/social_demand_eja.json');
         const data = await res.json();
         
         // Gráfico de Linha Histórico

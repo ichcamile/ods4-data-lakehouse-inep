@@ -2,10 +2,146 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=./dashboard/index.html">
-    <title>Redirecionando para o Observatório...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inteligência em Evasão Escolar - INEP</title>
+    <link rel="stylesheet" href="./dashboard/style.css">
+    <!-- Fonte Corporativa (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js & DataLabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 </head>
 <body>
-    <p>Se você não for redirecionado automaticamente, <a href="./dashboard/index.html">clique aqui para acessar o Dashboard</a>.</p>
+    <div class="dashboard-container">
+        
+        <!-- Header GovTech -->
+        <header class="pro-card header-banner fade-up">
+            <div class="logo">
+                <div class="icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 3L1 9L5 11.18V17.18L12 21L19 17.18V11.18L21 10.09V17H23V9L12 3ZM18.82 9L12 12.72L5.18 9L12 5.28L18.82 9ZM17 15.99L12 18.72L7 15.99V12.27L12 15L17 12.27V15.99Z"/>
+                    </svg>
+                </div>
+                <div class="title-group">
+                    <h1>Inteligência em Evasão Escolar e Demanda Social (ODS 4)</h1>
+                    <div class="subtitle">Análise Estratégica Rigorosa dos Microdados do Censo Escolar (INEP)</div>
+                </div>
+            </div>
+            <div class="badge-ano">Painel Atualizado: <strong id="kpi-ano">--</strong></div>
+        </header>
+
+        <!-- KPIs Principais -->
+        <section class="kpi-grid">
+            <div class="kpi-card pro-card fade-up delay-1" style="border-left-color: var(--gov-blue);">
+                <h3>Total de Escolas (Ativas)</h3>
+                <div class="value" id="kpi-escolas">--</div>
+            </div>
+            <div class="kpi-card pro-card fade-up delay-2" style="border-left-color: var(--gov-indigo);">
+                <h3>Matrículas Totais (Base)</h3>
+                <div class="value" id="kpi-matriculas">--</div>
+            </div>
+            <div class="kpi-card pro-card fade-up delay-3" style="border-left-color: var(--gov-emerald);">
+                <h3>Demanda Social (EJA)</h3>
+                <div class="value" id="kpi-eja">--%</div>
+                <div class="label">das escolas absorvem essa demanda</div>
+            </div>
+            <div class="kpi-card pro-card fade-up delay-4" style="border-left-color: var(--gov-red);">
+                <h3>Vulnerabilidade Crítica</h3>
+                <div class="value" id="kpi-vuln">--%</div>
+                <div class="label">das escolas sem Água ou Internet</div>
+            </div>
+        </section>
+
+        <!-- Storytelling 1: A Queda Histórica -->
+        <h2 class="section-title fade-up">1. Panorama Histórico da Evasão Nacional</h2>
+        <section class="charts-grid full-width">
+            <div class="chart-card pro-card fade-up">
+                <div class="card-header">
+                    <h2>Evolução Absoluta de Matrículas (2007 - Atual)</h2>
+                    <p>Este indicador representa o volume total absoluto de matrículas ativas na educação básica brasileira. A curva descreve um declínio estrutural acentuado ao longo da última década, refletindo não apenas transições demográficas, mas também a incapacidade histórica do sistema em reter os alunos no fluxo escolar regular.</p>
+                </div>
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Storytelling 2: Onde perdemos os alunos? -->
+        <h2 class="section-title fade-up">2. O Funil de Retenção e Território</h2>
+        <section class="charts-grid half-width">
+            <div class="chart-card pro-card fade-up">
+                <div class="card-header">
+                    <h2>O Abandono por Etapa de Ensino</h2>
+                    <p>Calcula a <strong>Taxa de Retenção (%)</strong>, definida pela proporção de alunos no Ensino Médio em relação ao Ensino Fundamental. Uma taxa próxima a 30% indica que a cada 100 alunos na base, apenas 30 estão na etapa final. A baixa porcentagem evidencia o momento exato em que o abandono escolar atinge seu pico crítico (a transição entre etapas).</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="stageChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card pro-card fade-up delay-1">
+                <div class="card-header">
+                    <h2>O Fator Território: Êxodo Rural</h2>
+                    <p>Utiliza um <strong>Índice de Variação Relativa (Base 100)</strong> para nivelar e comparar realidades de escalas muito diferentes. O descolamento agressivo da linha Rural (em queda livre) evidencia o impacto do êxodo rural e do sucateamento logístico das escolas no campo sobre o abandono escolar.</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="urbanRuralChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Storytelling 3: Causas e Perfis (Analítica Evasão) -->
+        <h2 class="section-title fade-up">3. Causalidade de Infraestrutura e Perfis de Risco</h2>
+        <section class="charts-grid half-width">
+            <div class="chart-card pro-card fade-up">
+                <div class="card-header">
+                    <h2>Prova Matemática: Infraestrutura Evita Evasão</h2>
+                    <p>As escolas foram agrupadas pelo seu Nível de Infraestrutura (Nota 0 a 5, baseada em acesso à água, internet, biblioteca, laboratório e quadra). Medimos a <strong>Variação % de Matrículas em 10 anos (2014 vs 2024)</strong>. Barras negativas (em vermelho) provam a relação de causa e efeito: escolas precárias (Nota 0) sofrem evasão massiva, enquanto as equipadas retêm matrículas.</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="infraEvasionChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card pro-card fade-up delay-1">
+                <div class="card-header">
+                    <h2>Perfil da Evasão: O Fator Gênero</h2>
+                    <p>Analisa a proporção de gênero isolando escolas que oferecem exclusivamente o Ensino Fundamental versus o Ensino Médio. A queda abrupta do percentual masculino na transição de etapa atesta estatisticamente que a <strong>evasão tem gênero</strong>: rapazes abandonam os estudos mais cedo, frequentemente pressionados a ingressar no mercado de trabalho não-qualificado.</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="genderEvasionChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demanda por Atendimento Social -->
+        <h2 class="section-title fade-up">4. A Demanda por Atendimento Social (EJA)</h2>
+        <section class="charts-grid half-width">
+            <div class="chart-card pro-card fade-up">
+                <div class="card-header">
+                    <h2>A Busca por Correção de Rota (Série Histórica)</h2>
+                    <p>A Educação de Jovens e Adultos (EJA) é o principal indicador de <strong>Demanda por Atendimento Social</strong>. Este gráfico utiliza um Índice Relativo (Base 100) para cruzar a queda nas matrículas regulares do Ensino Médio com a necessidade contínua de resgate educacional daqueles que evadiram no passado.</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="ejaDemandChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card pro-card fade-up delay-1">
+                <div class="card-header">
+                    <h2>Perfil Racial da Demanda Social (EJA)</h2>
+                    <p>Filtro demográfico aplicado exclusivamente aos estudantes matriculados em escolas dedicadas à EJA. O indicador revela o perfil de vulnerabilidade social dos estudantes que o Estado falhou em reter na idade correta, atestando que o atraso e a evasão escolar atingem de forma devastadora a população Negra (Preta e Parda).</p>
+                </div>
+                <div class="chart-container doughnut-container">
+                    <canvas id="ejaRaceChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>Painel de Inteligência Analítica - Temática 2 (Evasão Escolar e Demanda por Atendimento Social).</p>
+        </footer>
+    </div>
+
+    <script src="./dashboard/script.js"></script>
 </body>
 </html>
