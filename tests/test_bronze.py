@@ -24,7 +24,7 @@ def test_bronze_csvs_presentes(bronze_path):
     ano_dirs = sorted(bronze_path.glob("ano=*"))
     vazios = [
         d.name for d in ano_dirs
-        if not list(d.glob("*.csv")) and d.name not in ANOS_SEM_DADOS
+        if not list(d.glob("*.csv*")) and d.name not in ANOS_SEM_DADOS
     ]
     assert vazios == [], f"Diretórios sem CSV: {vazios}"
 
@@ -32,7 +32,10 @@ def test_bronze_csvs_presentes(bronze_path):
 def test_bronze_2024_header(bronze_path):
     """Verifica que o CSV de 2024 contém as colunas essenciais do Censo Escolar."""
     import pandas as pd
-    csv_2024 = bronze_path / "ano=2024" / "microdados_ed_basica_2024.csv"
+    csv_2024 = bronze_path / "ano=2024" / "microdados_ed_basica_2024.csv.gz"
+    if not csv_2024.exists():
+        csv_2024 = bronze_path / "ano=2024" / "microdados_ed_basica_2024.csv"
+        
     if not csv_2024.exists():
         pytest.skip("Arquivo Bronze 2024 não disponível.")
 

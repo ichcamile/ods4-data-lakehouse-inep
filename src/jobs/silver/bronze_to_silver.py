@@ -238,8 +238,12 @@ def run():
 
     for ano_dir in ano_dirs:
         ano = int(ano_dir.name.split("=")[1])
-        csvs = list(ano_dir.glob("microdados_ed_basica_*.csv"))
+        csvs = list(ano_dir.glob("microdados_ed_basica_*.csv.gz"))
 
+        if not csvs:
+            # Tenta buscar .csv normal por retrocompatibilidade local
+            csvs = list(ano_dir.glob("microdados_ed_basica_*.csv"))
+        
         if not csvs:
             logger.warning(f"Nenhum CSV encontrado em {ano_dir}")
             continue

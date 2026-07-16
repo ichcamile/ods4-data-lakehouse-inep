@@ -18,6 +18,7 @@ import time
 import shutil
 import zipfile
 import warnings
+import gzip
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -165,7 +166,7 @@ def _download_e_extrair(
     else:
         return False
 
-    # Extrai CSV(s) do subdiretório 'dados/'
+    # Extrai CSV(s) do subdiretório 'dados/' compactando para .gz (resolve limite de 2GB e economiza espaço)
     csvs_extraidos = 0
     try:
         with zipfile.ZipFile(buffer, "r") as zf:
@@ -174,11 +175,15 @@ def _download_e_extrair(
                     nome_arquivo = os.path.basename(entry)
                     if not nome_arquivo:
                         continue
-                    destino_arquivo = destino / nome_arquivo
-                    with zf.open(entry) as src, open(destino_arquivo, "wb") as dst:
+                    
+                    nome_arquivo_gz = f"{nome_arquivo}.gz"
+                    destino_arquivo = destino / nome_arquivo_gz
+                    
+                    with zf.open(entry) as src, gzip.open(destino_arquivo, "wb") as dst:
                         shutil.copyfileobj(src, dst)
+                        
                     csvs_extraidos += 1
-                    logger.info(f"  [{ano}] Extraído: {nome_arquivo}")
+                    logger.info(f"  [{ano}] Extraído e compactado: {nome_arquivo_gz}")
     except zipfile.BadZipFile:
         logger.error(f"  [{ano}] Arquivo ZIP inválido ou corrompido.")
         return False
@@ -235,10 +240,10 @@ def run(ano_inicio: int = 2004, ano_fim: int = 2024, forcar_redownload: bool = F
             continue
 
         destino_ano = bronze_path / f"ano={ano}"
-        csvs_existentes = list(destino_ano.glob("*.csv")) if destino_ano.exists() else []
+        csvs_existentes = list(destino_ano.glob("*.csv.gz")) if destino_ano.exists() else []
 
         if csvs_existentes and not forcar_redownload:
-            logger.info(f"[{ano}] Já processado ({len(csvs_existentes)} CSV(s)) — pulando.")
+            logger.info(f"[{ano}] Já processado ({len(csvs_existentes)} CSV.GZ(s)) — pulando.")
             pulados += 1
             continue
 
