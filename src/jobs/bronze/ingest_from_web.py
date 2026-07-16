@@ -10,11 +10,24 @@ Compatível com:
 """
 import io
 import os
+import sys
 import shutil
 import zipfile
 from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
+
+# ---------------------------------------------------------------------------
+# Bootstrap do sys.path — garante que 'src.*' funciona em qualquer ambiente:
+# execução local, `python -m`, Databricks Jobs e Databricks Notebooks.
+# ---------------------------------------------------------------------------
+_THIS_FILE = Path(__file__).resolve()
+# Sobe 3 níveis: ingest_from_web.py -> bronze -> jobs -> src -> ROOT
+_PROJECT_ROOT = _THIS_FILE.parents[3]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+# ---------------------------------------------------------------------------
+
 from src.config import settings
 from src.utils.logger import get_logger
 

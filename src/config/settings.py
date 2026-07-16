@@ -9,17 +9,17 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # App metadata
-APP_NAME = os.getenv("SPARK_APP_NAME", "ODS4-Lakehouse-INEP")
+APP_NAME = os.getenv("APP_NAME", "ODS4-Lakehouse-INEP")
 
 # Environment configurations (local, dev, prod)
 ENV = os.getenv("ENVIRONMENT", "local")
 
 # Medallion layers paths
-# In a real environment, these would point to s3a://, abfss:// or gs://
-RAW_DATA_PATH = os.getenv("RAW_DATA_PATH", str(BASE_DIR / "data" / "raw"))
+# Em produção/Databricks, aponte para DBFS ou Unity Catalog Volume:
+#   BRONZE_DATA_PATH=/dbfs/FileStore/lakehouse_inep/bronze
+#   SILVER_DATA_PATH=/dbfs/FileStore/lakehouse_inep/silver
+#   GOLD_DATA_PATH=/dbfs/FileStore/lakehouse_inep/gold
+RAW_DATA_PATH    = os.getenv("RAW_DATA_PATH",    str(BASE_DIR / "data" / "raw"))
 BRONZE_DATA_PATH = os.getenv("BRONZE_DATA_PATH", str(BASE_DIR / "data" / "bronze"))
 SILVER_DATA_PATH = os.getenv("SILVER_DATA_PATH", str(BASE_DIR / "data" / "silver"))
-GOLD_DATA_PATH = os.getenv("GOLD_DATA_PATH", str(BASE_DIR / "data" / "gold"))
-
-# Spark Master configuration
-SPARK_MASTER = os.getenv("SPARK_MASTER", "local[*]")
+GOLD_DATA_PATH   = os.getenv("GOLD_DATA_PATH",   str(BASE_DIR / "data" / "gold"))
